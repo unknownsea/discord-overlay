@@ -4,6 +4,49 @@
 
 #pragma comment(lib, "d3d11.lib")
 
+ImGuiKey vk_to_imguikey(DWORD vk) {
+    if (vk >= 'A' && vk <= 'Z') return static_cast<ImGuiKey>(ImGuiKey_A + (vk - 'A'));
+
+    if (vk >= '0' && vk <= '9') return static_cast<ImGuiKey>(ImGuiKey_0 + (vk - '0'));
+
+    switch (vk) {
+        case VK_LEFT:  return ImGuiKey_LeftArrow;
+        case VK_RIGHT: return ImGuiKey_RightArrow;
+        case VK_UP:    return ImGuiKey_UpArrow;
+        case VK_DOWN:  return ImGuiKey_DownArrow;
+
+        case VK_BACK:   return ImGuiKey_Backspace;
+        case VK_TAB:    return ImGuiKey_Tab;
+        case VK_RETURN: return ImGuiKey_Enter;
+        case VK_ESCAPE: return ImGuiKey_Escape;
+        case VK_SPACE:  return ImGuiKey_Space;
+        case VK_DELETE: return ImGuiKey_Delete;
+        case VK_HOME:   return ImGuiKey_Home;
+        case VK_END:    return ImGuiKey_End;
+        case VK_PRIOR:  return ImGuiKey_PageUp;
+        case VK_NEXT:   return ImGuiKey_PageDown;
+        case VK_INSERT: return ImGuiKey_Insert;
+
+        case VK_SHIFT:   return ImGuiKey_LeftShift;
+        case VK_CONTROL: return ImGuiKey_LeftCtrl;
+        case VK_MENU:    return ImGuiKey_LeftAlt;
+
+        case VK_OEM_1:  return ImGuiKey_Semicolon;
+        case VK_OEM_PLUS: return ImGuiKey_Equal;
+        case VK_OEM_COMMA: return ImGuiKey_Comma;
+        case VK_OEM_MINUS: return ImGuiKey_Minus;
+        case VK_OEM_PERIOD: return ImGuiKey_Period;
+        case VK_OEM_2: return ImGuiKey_Slash;
+        case VK_OEM_3: return ImGuiKey_GraveAccent;
+        case VK_OEM_4: return ImGuiKey_LeftBracket;
+        case VK_OEM_5: return ImGuiKey_Backslash;
+        case VK_OEM_6: return ImGuiKey_RightBracket;
+        case VK_OEM_7: return ImGuiKey_Apostrophe;
+
+        default: return ImGuiKey_None;
+    }
+}
+
 namespace Overlay {
 
     inline HWND hwnd = nullptr;
@@ -23,13 +66,49 @@ namespace Overlay {
     inline HHOOK mouseHook = nullptr;
 
     inline LRESULT CALLBACK KeyboardLL(int code, WPARAM wParam, LPARAM lParam) {
-        if (code == HC_ACTION && wParam == WM_KEYDOWN) {
-            auto* kb = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
-            if (kb->vkCode == VK_INSERT)
-                Menu::open = !Menu::open;
-            else if (kb->vkCode == VK_DELETE)
-                running = false;
+        if (code != HC_ACTION)
+            return CallNextHookEx(nullptr, code, wParam, lParam);
+
+        auto* kb = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
+        ImGuiIO& io = ImGui::GetIO();
+        bool down = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
+
+        ImGuiKey key = vk_to_imguikey(kb->vkCode);
+        if (key != ImGuiKey_None)
+            io.AddKeyEvent(key, down);
+
+        io.AddKeyEvent(ImGuiKey_ModCtrl,  (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0);
+        io.AddKeyEvent(ImGuiKey_ModShift, (GetAsyncKeyState(VK_SHIFT)   & 0x8000) != 0);
+        io.AddKeyEvent(ImGuiKey_ModAlt,   (GetAsyncKeyState(VK_MENU)    & 0x8000) != 0);
+
+        if (down) {
+            if (!(GetAsyncKeyState(VK_CONTROL) & 0x8000)) {
+                BYTE keyboardState[256] = {};
+                GetKeyboardState(keyboardState);
+
+                if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+                    keyboardState[VK_SHIFT] |= 0x80;
+
+                WCHAR buffer[5] = {};
+                if (ToUnicode(kb->vkCode, kb->scanCode, keyboardState, buffer, 4, 0) > 0) {
+                    for (int i = 0; buffer[i]; ++i)
+                        io.AddInputCharacter(buffer[i]);
+                }
+            }
         }
+
+        if (down && (GetAsyncKeyState(VK_CONTROL) & 0x8000)) {
+            switch (kb->vkCode) {
+                case 'A': io.AddKeyEvent(ImGuiKey_A, true); break; // Select all
+                case 'C': io.AddKeyEvent(ImGuiKey_C, true); break; // Copy
+                case 'V': io.AddKeyEvent(ImGuiKey_V, true); break; // Paste
+                case 'X': io.AddKeyEvent(ImGuiKey_X, true); break; // Cut
+            }
+        }
+
+        if (down && kb->vkCode == VK_INSERT)
+            Menu::open = !Menu::open;
+
         return CallNextHookEx(nullptr, code, wParam, lParam);
     }
 
@@ -37,9 +116,15 @@ namespace Overlay {
         if (code == HC_ACTION) {
             auto* ms = reinterpret_cast<MSLLHOOKSTRUCT*>(lParam);
             mousePos = ImVec2(static_cast<float>(ms->pt.x), static_cast<float>(ms->pt.y));
-            leftDown  = (wParam == WM_LBUTTONDOWN)  ? true  : (wParam == WM_LBUTTONUP)  ? false : leftDown;
-            rightDown = (wParam == WM_RBUTTONDOWN) ? true  : (wParam == WM_RBUTTONUP) ? false : rightDown;
+            switch (wParam) {
+                case WM_LBUTTONDOWN: leftDown = true; break;
+                case WM_LBUTTONUP:   leftDown = false; break;
+                case WM_RBUTTONDOWN: rightDown = true; break;
+                case WM_RBUTTONUP:   rightDown = false; break;
+            }
         }
+
+
         return CallNextHookEx(nullptr, code, wParam, lParam);
     }
 
@@ -152,6 +237,14 @@ namespace Overlay {
         io.MousePos = ImVec2(static_cast<float>(p.x), static_cast<float>(p.y));
         io.MouseDown[0] = leftDown;
         io.MouseDown[1] = rightDown;
-        io.MouseDrawCursor = true;
+
+        static bool cursorHidden = false;
+        if (Menu::open) {
+            io.MouseDrawCursor = true;
+            if (!cursorHidden) { ShowCursor(FALSE); cursorHidden = true; }
+        } else {
+            io.MouseDrawCursor = false;
+            if (cursorHidden) { ShowCursor(TRUE); cursorHidden = false; }
+        }
     }
 }

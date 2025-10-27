@@ -5,7 +5,7 @@
 #include "overlay/menu.hpp"
 
 int main() {
-    HWND target = FindWindowA(nullptr, "Discord Overlay");
+    HWND target = FindWindowA("Chrome_WidgetWin_1", "Discord Overlay");
     if (!target) return 1;
 
     if (!Overlay::InitD3D(target)) return 1;

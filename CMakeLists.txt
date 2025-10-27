@@ -8,6 +8,10 @@ add_executable(discord_overlay
         src/main.cpp
         src/overlay/overlay.hpp
         src/overlay/menu.hpp
+
+        ext/imgui_texteditor/LanguageDefinitions.cpp
+        ext/imgui_texteditor/TextEditor.cpp
+
         ext/imgui/imgui.cpp
         ext/imgui/imgui_draw.cpp
         ext/imgui/imgui_tables.cpp
