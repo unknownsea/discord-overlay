@@ -25,6 +25,12 @@ int main() {
     std::cout << "[+] Hook thread started" << std::endl;
 
     while (Overlay::running) {
+        if (!IsWindow(target)) {
+            std::cout << "[-] Overlay window closed or lost, exiting" << std::endl;
+            Overlay::running = false;
+            break;
+        }
+
         Overlay::UpdateInput();
         Overlay::RenderFrame([]() {
             if (Menu::open)
