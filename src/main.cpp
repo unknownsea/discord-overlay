@@ -1,16 +1,28 @@
-// this is heavily inspired by https://github.com/FlR0X/Discord-Overlay-Hijack-External
-
+#include "iostream"
 #include "includes.hpp"
 #include "overlay/overlay.hpp"
 #include "overlay/menu.hpp"
 
 int main() {
     HWND target = FindWindowA("Chrome_WidgetWin_1", "Discord Overlay");
-    if (!target) return 1;
+    if (!target) {
+        std::cout << "[-] Overlay not found, exiting" << std::endl;
+        return 1;
+    }
+    std::cout << "[+] Overlay found" << std::endl;
 
-    if (!Overlay::InitD3D(target)) return 1;
+    if (!Overlay::InitD3D(target)) {
+        std::cout << "[-] D3D failed initialization, exiting" << std::endl;
+        return 1;
+    }
+    std::cout << "[+] D3D Initialized" << std::endl;
 
     std::thread hookThread(Overlay::StartHooks);
+    if (!hookThread.joinable()) {
+        std::cout << "[-] Failed to start hook thread, exiting" << std::endl;
+        return 1;
+    }
+    std::cout << "[+] Hook thread started" << std::endl;
 
     while (Overlay::running) {
         Overlay::UpdateInput();
@@ -22,5 +34,10 @@ int main() {
     }
 
     hookThread.join();
+    std::cout << "[?] Threads combined" << std::endl;
+
     Overlay::Shutdown();
+    std::cout << "[?]Overlay shutdown" << std::endl;
+
+    return 0;
 }
