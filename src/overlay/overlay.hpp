@@ -3,6 +3,7 @@
 #include "menu.hpp"
 
 #pragma comment(lib, "d3d11.lib")
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // WTF WHY IS THIS UNDOCUMENTED (https://github.com/ocornut/imgui/blob/master/backends/imgui_impl_win32.cpp#L436)
 // if i dont add _Public to name it fails with: multiple definition of `ImGui_ImplWin32_KeyEventToImGuiKey(unsigned long long, long long)';
@@ -234,8 +235,8 @@ namespace Overlay {
             case WM_RBUTTONUP:   rightDown = false; break;
         }
 
-        if (Menu::open)
-            return 1;
+        // if (Menu::open)
+        //     return 1;
         return CallNextHookEx(nullptr, code, wParam, lParam);
     }
 
@@ -351,10 +352,10 @@ namespace Overlay {
 
         static bool cursorHidden = false;
         if (Menu::open) {
-            io.MouseDrawCursor = true;
+            //io.MouseDrawCursor = true;
             if (!cursorHidden) { ShowCursor(FALSE); cursorHidden = true; }
         } else {
-            io.MouseDrawCursor = false;
+            //io.MouseDrawCursor = false;
             if (cursorHidden) { ShowCursor(TRUE); cursorHidden = false; }
         }
     }
