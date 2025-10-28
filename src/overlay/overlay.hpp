@@ -219,6 +219,10 @@ namespace Overlay {
         if (down && kb->vkCode == VK_INSERT)
             Menu::open = !Menu::open;
 
+        LPARAM new_lParam = 1 | (kb->scanCode << 16) | ((kb->flags & LLKHF_EXTENDED) ? (1 << 24) : 0);
+        if (ImGui_ImplWin32_WndProcHandler(hwnd, wParam, kb->vkCode, new_lParam))
+            return 1;
+
         return CallNextHookEx(nullptr, code, wParam, lParam);
     }
 
@@ -235,8 +239,19 @@ namespace Overlay {
             case WM_RBUTTONUP:   rightDown = false; break;
         }
 
-        // if (Menu::open)
-        //     return 1;
+        LPARAM new_lParam = MAKELPARAM(ms->pt.x, ms->pt.y);
+        WPARAM new_wParam = 0;
+
+        if (GetKeyState(VK_CONTROL) & 0x8000) new_wParam |= MK_CONTROL;
+        if (GetKeyState(VK_SHIFT) & 0x8000)   new_wParam |= MK_SHIFT;
+        if (leftDown)  new_wParam |= MK_LBUTTON;
+        if (rightDown) new_wParam |= MK_RBUTTON;
+
+        ImGui_ImplWin32_WndProcHandler(hwnd, wParam, new_wParam, new_lParam);
+
+        if (Menu::open && (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN))
+            return 1;
+
         return CallNextHookEx(nullptr, code, wParam, lParam);
     }
 
