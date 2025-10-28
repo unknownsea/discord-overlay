@@ -48,6 +48,8 @@ void TextEditor::SetPalette(PaletteId aValue)
 	case PaletteId::RetroBlue:
 		palletteBase = &(GetRetroBluePalette());
 		break;
+	case PaletteId::Neutral:
+		palletteBase = &(GetNeutralPalette());
 	}
 	/* Update palette with the current alpha from style */
 	for (int i = 0; i < (int)PaletteIndex::Max; ++i)
@@ -2938,6 +2940,13 @@ const TextEditor::Palette& TextEditor::GetRetroBluePalette()
 			0x80808040, // Current line fill (inactive)
 			0x00000040, // Current line edge
 		} };
+	return p;
+}
+
+const TextEditor::Palette& TextEditor::GetNeutralPalette()
+{
+	static Palette p = GetDarkPalette();
+	p[12] = 0x212121ff;
 	return p;
 }
 

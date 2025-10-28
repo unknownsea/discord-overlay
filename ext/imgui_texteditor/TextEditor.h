@@ -22,7 +22,7 @@ public:
 
 	enum class PaletteId
 	{
-		Dark, Light, Mariana, RetroBlue
+		Dark, Light, Mariana, RetroBlue, Neutral
 	};
 	enum class LanguageDefinitionId
 	{
@@ -461,6 +461,7 @@ private:
 	static const Palette& GetMarianaPalette();
 	static const Palette& GetLightPalette();
 	static const Palette& GetRetroBluePalette();
+	static const Palette& GetNeutralPalette();
 	static const std::unordered_map<char, char> OPEN_TO_CLOSE_CHAR;
 	static const std::unordered_map<char, char> CLOSE_TO_OPEN_CHAR;
 	static PaletteId defaultPalette;

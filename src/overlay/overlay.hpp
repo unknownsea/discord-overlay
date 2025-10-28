@@ -175,6 +175,30 @@ namespace Overlay {
     inline HHOOK kbHook = nullptr;
     inline HHOOK mouseHook = nullptr;
 
+    // function to see if the overlay should take input or not
+    // (really bad so just use insert if your clicking through windows instead of using alt+tab)
+    inline bool IsDiscordOverlayFocused()
+    {
+        if (!hwnd)
+            return false;
+
+        if (!IsWindowVisible(hwnd))
+            return false;
+
+        RECT overlayRect;
+        if (!GetClientRect(hwnd, &overlayRect))
+            return false;
+
+        POINT mousePosScreen;
+        if (!GetCursorPos(&mousePosScreen))
+            return false;
+
+        ScreenToClient(hwnd, &mousePosScreen);
+
+        return (mousePosScreen.x >= 0 && mousePosScreen.x < overlayRect.right &&
+                mousePosScreen.y >= 0 && mousePosScreen.y < overlayRect.bottom);
+    }
+
     inline LRESULT CALLBACK KeyboardLL(int code, WPARAM wParam, LPARAM lParam) {
         if (code != HC_ACTION)
             return CallNextHookEx(nullptr, code, wParam, lParam);
@@ -209,19 +233,19 @@ namespace Overlay {
 
         if (down && (GetAsyncKeyState(VK_CONTROL) & 0x8000)) {
             switch (kb->vkCode) {
-                case 'A': io.AddKeyEvent(ImGuiKey_A, true); break; // Select all
-                case 'C': io.AddKeyEvent(ImGuiKey_C, true); break; // Copy
-                case 'V': io.AddKeyEvent(ImGuiKey_V, true); break; // Paste
-                case 'X': io.AddKeyEvent(ImGuiKey_X, true); break; // Cut
+                case 'A': io.AddKeyEvent(ImGuiKey_A, true); break;
+                case 'C': io.AddKeyEvent(ImGuiKey_C, true); break;
+                case 'V': io.AddKeyEvent(ImGuiKey_V, true); break;
+                case 'X': io.AddKeyEvent(ImGuiKey_X, true); break;
             }
         }
 
         if (down && kb->vkCode == VK_INSERT)
             Menu::open = !Menu::open;
 
-        LPARAM new_lParam = 1 | (kb->scanCode << 16) | ((kb->flags & LLKHF_EXTENDED) ? (1 << 24) : 0);
-        if (ImGui_ImplWin32_WndProcHandler(hwnd, wParam, kb->vkCode, new_lParam))
-            return 1;
+        // LPARAM new_lParam = 1 | (kb->scanCode << 16) | ((kb->flags & LLKHF_EXTENDED) ? (1 << 24) : 0);
+        // if (ImGui_ImplWin32_WndProcHandler(hwnd, wParam, kb->vkCode, new_lParam))
+        //     return 1;
 
         return CallNextHookEx(nullptr, code, wParam, lParam);
     }
@@ -247,10 +271,12 @@ namespace Overlay {
         if (leftDown)  new_wParam |= MK_LBUTTON;
         if (rightDown) new_wParam |= MK_RBUTTON;
 
-        ImGui_ImplWin32_WndProcHandler(hwnd, wParam, new_wParam, new_lParam);
+        // ImGui_ImplWin32_WndProcHandler(hwnd, wParam, new_wParam, new_lParam);
 
-        if (Menu::open && (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN))
-            return 1;
+        if (Menu::open && (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN)) {
+            if (IsDiscordOverlayFocused())
+                return 1;
+        }
 
         return CallNextHookEx(nullptr, code, wParam, lParam);
     }

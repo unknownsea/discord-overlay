@@ -43,7 +43,7 @@ int main() {
     std::cout << "[?] Threads combined" << std::endl;
 
     Overlay::Shutdown();
-    std::cout << "[?]Overlay shutdown" << std::endl;
+    std::cout << "[?] Overlay shutdown" << std::endl;
 
     return 0;
 }
